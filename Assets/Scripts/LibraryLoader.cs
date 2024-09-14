@@ -18,10 +18,27 @@ public class LibraryLoader : MonoBehaviour
     private GameObject elementsParent;
 
     [SerializeField]
-    private Button buttonPrefab; // Assign a button prefab in the Inspector
+    private Button buttonPrefab;
 
     [SerializeField]
-    private Transform spawnPoint;
+    private GameObject iconPrefab; // Assign the icon prefab in the Inspector
+
+    [SerializeField]
+    private GameObject currentIcon;
+
+    [SerializeField]
+    private Transform vrController;
+
+    [SerializeField]
+    private Transform centerEyeAnchor;
+
+    private LibraryElement currentSelected;
+
+    [SerializeField]
+    private float spawnHeight = 0.5f;
+
+    //[SerializeField]
+    //private Transform 
 
     // Start is called before the first frame update
     void Start()
@@ -33,35 +50,28 @@ public class LibraryLoader : MonoBehaviour
         }
 
         // Create buttons for each LibraryElement
-        foreach (var element in libraryElements)
+
+        for (int i = 0; i < libraryElements.Count; ++i)
         {
-            CreateButton(element);
+            CreateButton(libraryElements[i], i);
         }
+
+        // Instantiate the icon but don't show it initially
+        if (currentIcon != null)
+            currentIcon.SetActive(false);
     }
 
-    private void CreateButton(LibraryElement element)
+    private void CreateButton(LibraryElement element, int index)
     {
         // Instantiate the button from the prefab
         Button button = Instantiate(buttonPrefab, elementsParent.transform);
 
         RectTransform rectTransform = button.GetComponent<RectTransform>();
 
-        //if (rectTransform != null)
-        //{
-        //    // Set anchors to bottom-left
-        //    rectTransform.anchorMin = new Vector2(0, 0); // Bottom-left
-        //    rectTransform.anchorMax = new Vector2(0, 0); // Bottom-left
+        rectTransform.anchoredPosition = new Vector3(69 + 2 * index * 69, -69);
 
-        //    // Set the pivot to the bottom-left
-        //    rectTransform.pivot = new Vector2(0, 0); // Bottom-left
-
-        //    // Optionally, set the position of the button
-        //    rectTransform.anchoredPosition = new Vector2(0, 0); // Adjust as needed
-        //}
-
-
-        // Find the specific child GameObject that contains the Image component
-        Transform iconTransform = button.transform.Find("Icon"); // Replace with the actual name of the child
+        // Find the "Icon" child gameObject
+        Transform iconTransform = button.transform.Find("Icon");
 
         if (iconTransform != null)
         {
@@ -83,14 +93,82 @@ public class LibraryLoader : MonoBehaviour
         }
 
         // Set the button's click event
-        button.onClick.AddListener(() => OnButtonClick(element.gameObject));
+        button.onClick.AddListener(() => OnButtonClick(element));
     }
 
-    private void OnButtonClick(GameObject prefab)
+    private void OnButtonClick(LibraryElement elt)
     {
-        if (prefab != null && spawnPoint != null)
+        if (elt != null)
         {
-            Instantiate(prefab, spawnPoint.position, Quaternion.identity);
+            currentSelected = elt;
+            //Instantiate(prefab, spawnPoint.position, Quaternion.identity);
+            Image icon = currentIcon.GetComponent<Image>();
+            icon.sprite = elt.sprite;
+
+            ShowIconAtIntersection();
+        }
+    }
+
+    private void ShowIconAtIntersection()
+    {
+        // Perform a raycast from the VR controller
+        Ray ray = new Ray(vrController.position, vrController.forward);
+        RaycastHit hit;
+
+        Image icon = currentIcon.GetComponent<Image>();
+        icon.transform.LookAt(centerEyeAnchor, Vector3.down);
+
+        if (Physics.Raycast(ray, out hit))
+        {
+            Debug.Log("hit => " + hit.collider.name + ", with tag => " + hit.collider.tag);
+            if (hit.collider.CompareTag("Ground"))
+            {
+                // Move the icon to the intersection point on the ground
+                currentIcon.transform.position = hit.point;
+                if (!currentIcon.activeSelf)
+                    currentIcon.SetActive(true);
+            }
+        }
+    }
+
+    private void SpawnAtIntersection()
+    {
+        Ray ray = new Ray(vrController.position, vrController.forward);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit))
+        {
+            if (hit.collider.CompareTag("Ground"))
+            {
+                Instantiate(currentSelected.gameObject, hit.point + Vector3.up * spawnHeight, Quaternion.identity);
+            }
+        }
+    }
+
+    bool isButtonHeld = false;
+
+    void Update()
+    {
+        // Check if the VR controller button is being held down
+        if (OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger))
+            isButtonHeld = true;
+        else if (OVRInput.GetUp(OVRInput.Button.PrimaryIndexTrigger))
+        {
+            isButtonHeld = false;
+            SpawnAtIntersection();
+        }
+
+        if (isButtonHeld)
+        {
+            Debug.Log("BUTTON BEING HELD");
+            ShowIconAtIntersection();
+        }
+        else
+        {
+            if (currentIcon != null)
+            {
+                currentIcon.SetActive(false);
+            }
         }
     }
 }
