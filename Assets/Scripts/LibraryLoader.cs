@@ -102,7 +102,8 @@ public class LibraryLoader : MonoBehaviour
         {
             currentSelected = elt;
             //Instantiate(prefab, spawnPoint.position, Quaternion.identity);
-            Image icon = currentIcon.GetComponent<Image>();
+            Transform iconTransform = currentIcon.transform.Find("Icon");
+            Image icon = iconTransform.GetComponent<Image>();
             icon.sprite = elt.sprite;
 
             ShowIconAtIntersection();
@@ -116,7 +117,7 @@ public class LibraryLoader : MonoBehaviour
         RaycastHit hit;
 
         Image icon = currentIcon.GetComponent<Image>();
-        icon.transform.LookAt(centerEyeAnchor, Vector3.down);
+        icon.transform.LookAt(2 * icon.transform.position - centerEyeAnchor.position);
 
         if (Physics.Raycast(ray, out hit))
         {
