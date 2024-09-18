@@ -37,11 +37,8 @@ public class LibraryLoader : MonoBehaviour
     [SerializeField]
     private float spawnHeight = 0.5f;
 
-    //[SerializeField]
-    //private Transform 
-
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
         // Clear existing children
         foreach (Transform child in elementsParent.transform)
@@ -56,7 +53,6 @@ public class LibraryLoader : MonoBehaviour
             CreateButton(libraryElements[i], i);
         }
 
-        // Instantiate the icon but don't show it initially
         if (currentIcon != null)
             currentIcon.SetActive(false);
     }
@@ -128,6 +124,8 @@ public class LibraryLoader : MonoBehaviour
                 currentIcon.transform.position = hit.point;
                 if (!currentIcon.activeSelf)
                     currentIcon.SetActive(true);
+            } else {
+                currentIcon.SetActive(false);
             }
         }
     }
