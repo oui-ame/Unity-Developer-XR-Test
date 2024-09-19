@@ -48,6 +48,9 @@ public class LibraryLoader : MonoBehaviour
 
     bool isButtonHeld = false;
 
+    [SerializeField]
+    private GameObject particleSystemPrefab;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -149,14 +152,12 @@ public class LibraryLoader : MonoBehaviour
             Debug.Log("hit => " + hit.collider.name + ", with tag => " + hit.collider.tag);
             if (hit.collider.CompareTag("Ground"))
             {
-                // Move the icon to the intersection point on the ground
                 currentIcon.SetActive(true);
                 tooltipAnimator.Play("Idle");
+                // Move the icon to the intersection point on the ground
                 currentIcon.transform.position = hit.point + Vector3.up * 0.1f;
-            } else {
-                // TODO: what ?
-                //currentIcon.SetActive(false);
-            }
+            } else
+                currentIcon.SetActive(false);
         }
     }
 
@@ -174,13 +175,21 @@ public class LibraryLoader : MonoBehaviour
             {
                 tooltipAnimator.SetTrigger("ButtonReleased");
                 GameObject instance = Instantiate(currentSelected.gameObject, hit.point + Vector3.up * spawnHeight, Quaternion.identity);
+                instance.tag = "Spawned";
                 Animator animator = instance.AddComponent<Animator>();
                 animator.runtimeAnimatorController = animatorController;
             }
-            else
-            {
-                currentIcon.SetActive(false);
-            }
+        }
+    }
+
+    public void ClearSpawnedObjects()
+    {
+        GameObject[] spawnedObjects = GameObject.FindGameObjectsWithTag("Spawned");
+        
+        for (int i = 0; i < spawnedObjects.Length; ++i)
+        {
+            Instantiate(particleSystemPrefab, spawnedObjects[i].transform.position, Quaternion.Euler(-90, 0, 0));
+            Destroy(spawnedObjects[i]);
         }
     }
 
