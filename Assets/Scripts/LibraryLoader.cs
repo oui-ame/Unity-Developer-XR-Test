@@ -37,8 +37,19 @@ public class LibraryLoader : MonoBehaviour
     [SerializeField]
     private float spawnHeight = 0.5f;
 
+    [SerializeField]
+    private Color itemSelectedColor = Color.cyan;
+
+    [SerializeField]
+    private Animator tooltipAnimator;
+
+    [SerializeField]
+    public RuntimeAnimatorController animatorController;
+
+    bool isButtonHeld = false;
+
     // Start is called before the first frame update
-    void Awake()
+    void Start()
     {
         // Clear existing children
         foreach (Transform child in elementsParent.transform)
@@ -55,6 +66,12 @@ public class LibraryLoader : MonoBehaviour
 
         if (currentIcon != null)
             currentIcon.SetActive(false);
+
+        VirtualLayout vl = elementsParent.GetComponent<VirtualLayout>();
+        if (vl != null)
+            elementsParent.GetComponent<VirtualLayout>().enabled = true;
+        else
+            Debug.LogError("VirtualLayout is missing in items parent !");
     }
 
     private void CreateButton(LibraryElement element, int index)
@@ -89,20 +106,32 @@ public class LibraryLoader : MonoBehaviour
         }
 
         // Set the button's click event
-        button.onClick.AddListener(() => OnButtonClick(element));
+        button.onClick.AddListener(() => OnButtonClick(element, index));
     }
 
-    private void OnButtonClick(LibraryElement elt)
+    private void OnButtonClick(LibraryElement elt, int index)
     {
         if (elt != null)
         {
             currentSelected = elt;
+            RefreshSelected(index);
             //Instantiate(prefab, spawnPoint.position, Quaternion.identity);
             Transform iconTransform = currentIcon.transform.Find("Icon");
             Image icon = iconTransform.GetComponent<Image>();
             icon.sprite = elt.sprite;
+        }
+    }
 
-            ShowIconAtIntersection();
+    private void RefreshSelected(int index)
+    {
+
+        for (int i = 0; i < elementsParent.transform.childCount; ++i)
+        {
+            Transform child = elementsParent.transform.GetChild(i);
+            Image outlineComp = child.GetComponent<Image>();
+            if (outlineComp == null) continue;
+
+            outlineComp.color = i == index ? itemSelectedColor : Color.white;
         }
     }
 
@@ -121,11 +150,12 @@ public class LibraryLoader : MonoBehaviour
             if (hit.collider.CompareTag("Ground"))
             {
                 // Move the icon to the intersection point on the ground
-                currentIcon.transform.position = hit.point;
-                if (!currentIcon.activeSelf)
-                    currentIcon.SetActive(true);
+                currentIcon.SetActive(true);
+                tooltipAnimator.Play("Idle");
+                currentIcon.transform.position = hit.point + Vector3.up * 0.1f;
             } else {
-                currentIcon.SetActive(false);
+                // TODO: what ?
+                //currentIcon.SetActive(false);
             }
         }
     }
@@ -135,16 +165,24 @@ public class LibraryLoader : MonoBehaviour
         Ray ray = new Ray(vrController.position, vrController.forward);
         RaycastHit hit;
 
+        if (currentSelected == null)
+            return;
+
         if (Physics.Raycast(ray, out hit))
         {
             if (hit.collider.CompareTag("Ground"))
             {
-                Instantiate(currentSelected.gameObject, hit.point + Vector3.up * spawnHeight, Quaternion.identity);
+                tooltipAnimator.SetTrigger("ButtonReleased");
+                GameObject instance = Instantiate(currentSelected.gameObject, hit.point + Vector3.up * spawnHeight, Quaternion.identity);
+                Animator animator = instance.AddComponent<Animator>();
+                animator.runtimeAnimatorController = animatorController;
+            }
+            else
+            {
+                currentIcon.SetActive(false);
             }
         }
     }
-
-    bool isButtonHeld = false;
 
     void Update()
     {
@@ -157,17 +195,10 @@ public class LibraryLoader : MonoBehaviour
             SpawnAtIntersection();
         }
 
-        if (isButtonHeld)
+        if (isButtonHeld && currentSelected != null)
         {
             Debug.Log("BUTTON BEING HELD");
             ShowIconAtIntersection();
-        }
-        else
-        {
-            if (currentIcon != null)
-            {
-                currentIcon.SetActive(false);
-            }
         }
     }
 }
