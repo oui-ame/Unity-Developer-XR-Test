@@ -175,6 +175,7 @@ public class LibraryLoader : MonoBehaviour
             {
                 tooltipAnimator.SetTrigger("ButtonReleased");
                 GameObject instance = Instantiate(currentSelected.gameObject, hit.point + Vector3.up * spawnHeight, Quaternion.identity);
+                //instance.transform.localScale = currentSelected.gameObject.transform.localScale;
                 instance.tag = "Spawned";
                 Animator animator = instance.AddComponent<Animator>();
                 animator.runtimeAnimatorController = animatorController;
